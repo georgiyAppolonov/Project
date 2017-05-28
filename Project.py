@@ -7,9 +7,16 @@ class VideoCapture(QtGui.QWidget):
 
     a = 1
     img = []
+    b=0
+    c=0
+    d=False
+
     classifier = cv2.CascadeClassifier('ff.xml')
+    fps = 40
     fsd='abra'
-    chelovek = False
+    time=10*fps
+    lack=2*fps
+
 
     def __init__(self, parent):
         #self.classifier = None
@@ -24,7 +31,6 @@ class VideoCapture(QtGui.QWidget):
         ret, frame = self.cap.read()
         gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
         if self.classifier is not None:
-            self.chelovek = True
             detects = self.classifier.detectMultiScale(gray, scaleFactor=1.3,
                                                minNeighbors=4,
                                                minSize=(30, 30),
@@ -32,9 +38,24 @@ class VideoCapture(QtGui.QWidget):
             for (x, y, w, h) in detects:
                 (e, d) = (min(x + w, 640), min(y + h, 480))
                 cv2.rectangle(frame, (x, y), (e, d), (255, 0, 0), 2)
-
-        else:
-            self.chelovek = False
+            if not detects == ():
+                self.b+=1
+                print self.b
+                if self.time==self.b:
+                    self.saveFace()
+                    print "Saving..."
+                if self.b>self.time+100:
+                    self.b=self.time+50
+                self.c=0
+                self.d=True
+            else:
+                if self.d:
+                    self.c+=1
+                if self.lack==self.c:
+                    if self.d:
+                        print "zero!"
+                        self.b=0
+                    self.d=False
 
         self.img = frame
         frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
@@ -47,7 +68,7 @@ class VideoCapture(QtGui.QWidget):
     def start(self):
         self.timer=QtCore.QTimer()
         self.timer.timeout.connect(self.nextFrameSlot)
-        self.timer.start(1000.0/40)
+        self.timer.start(1000.0/self.fps)
 
     def pause(self):
         self.timer.stop()
@@ -60,11 +81,9 @@ class VideoCapture(QtGui.QWidget):
         self.fsd = fsd
 
     def saveFace(self):
-        if self.chelovek:
-
-            cv2.imwrite( str(self.fsd)+ str(self.a) + ".jpg", self.img)
-            self.a+=1
-            print "saved!"
+        cv2.imwrite( str(self.fsd)+ str(self.a) + ".jpg", self.img)
+        self.a+=1
+        print "saved!"
 
 
 
