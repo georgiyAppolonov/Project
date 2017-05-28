@@ -16,10 +16,10 @@ class VideoCapture(QtGui.QWidget):
     fsd='abra'
     time=10*fps
     lack=2*fps
+    Working=False
 
 
     def __init__(self, parent):
-        #self.classifier = None
         super(QtGui.QWidget, self).__init__()
         self.cap = cv2.VideoCapture(0)
         self.video_frame=QtGui.QLabel()
@@ -30,7 +30,7 @@ class VideoCapture(QtGui.QWidget):
     def nextFrameSlot(self):
         ret, frame = self.cap.read()
         gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
-        if self.classifier is not None:
+        if self.classifier is not None and self.Working:
             detects = self.classifier.detectMultiScale(gray, scaleFactor=1.3,
                                                minNeighbors=4,
                                                minSize=(30, 30),
@@ -42,10 +42,10 @@ class VideoCapture(QtGui.QWidget):
                 self.b+=1
                 print self.b
                 if self.time==self.b:
-                    self.saveFace()
                     print "Saving..."
-                if self.b>self.time+100:
-                    self.b=self.time+50
+                    self.saveFace()
+                if self.b>self.time+2:
+                    self.b=self.time+1
                 self.c=0
                 self.d=True
             else:
@@ -77,9 +77,6 @@ class VideoCapture(QtGui.QWidget):
         self.cap.release()
         super(QtGui.QWidget, self).deleteLater()
 
-    def setFileSave(self, fsd):
-        self.fsd = fsd
-
     def saveFace(self):
         cv2.imwrite( str(self.fsd)+ str(self.a) + ".jpg", self.img)
         self.a+=1
@@ -97,6 +94,12 @@ class ControlWindow(QtGui.QMainWindow):
         exit.setShortcut('Ctrl+s')
         exit.setStatusTip('Save file direktory')
         self.connect(exit, QtCore.SIGNAL('triggered()'), self.showOpenDialog)
+
+        exit1 = QtGui.QAction('Start', self)
+        exit1.setShortcut('Alt+s')
+        exit1.setStatusTip('Start search')
+        self.connect(exit1, QtCore.SIGNAL('triggered()'), self.startSearch)
+
         self.statusBar()
         self.setFocus()
 
@@ -104,14 +107,21 @@ class ControlWindow(QtGui.QMainWindow):
         menubar = self.menuBar()
         file = menubar.addMenu('&File')
         file.addAction(exit)
+        file.addAction(exit1)
         self.vc = VideoCapture(self)
         self.setCentralWidget(self.vc)
         self.vc.start()
 
     def showOpenDialog(self):
         filename = QtGui.QFileDialog.getSaveFileName(self, 'Save...', '\\')
-        self.vc.setFileSave(str(filename))
-        self.vc.saveFace()
+        self.vc.fsd=(str(filename))
+
+    def startSearch(self):
+        self.vc.Working = not self.vc.Working
+        if not self.vc.Working:
+            print "Work is running"
+        else:
+            print "Work is stopped"
 
 def main():
     app = QtGui.QApplication(sys.argv)
