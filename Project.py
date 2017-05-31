@@ -10,13 +10,14 @@ class VideoCapture(QtGui.QWidget):
     b=0
     c=0
     d=False
+    Working = False
 
     classifier = cv2.CascadeClassifier('ff.xml')
     fps = 40
     fsd='abra'
     time=10*fps
     lack=2*fps
-    Working=False
+
 
 
     def __init__(self, parent):
@@ -90,10 +91,10 @@ class ControlWindow(QtGui.QMainWindow):
         self.setGeometry(50,50,670,520)
         self.setWindowTitle("Mag")
 
-        exit = QtGui.QAction('Save', self)
+        exit = QtGui.QAction('Settings', self)
         exit.setShortcut('Ctrl+s')
-        exit.setStatusTip('Save file direktory')
-        self.connect(exit, QtCore.SIGNAL('triggered()'), self.showOpenDialog)
+        exit.setStatusTip('Settings')
+        self.connect(exit, QtCore.SIGNAL('triggered()'), self.setT)
 
         exit1 = QtGui.QAction('Start', self)
         exit1.setShortcut('Alt+s')
@@ -106,9 +107,10 @@ class ControlWindow(QtGui.QMainWindow):
 
         menubar = self.menuBar()
         file = menubar.addMenu('&File')
-        file.addAction(exit)
         file.addAction(exit1)
+        file.addAction(exit)
         self.vc = VideoCapture(self)
+
         self.setCentralWidget(self.vc)
         self.vc.start()
 
@@ -122,6 +124,17 @@ class ControlWindow(QtGui.QMainWindow):
             print "Work is running"
         else:
             print "Work is stopped"
+
+    def setT(self):
+        if not hasattr(self, 'dialog'):
+            self.dialog=SettingsWindow()
+            self.dialog.show()
+
+class SettingsWindow(QtGui.QDialog):
+    def __init__(self):
+        super(SettingsWindow, self).__init__()
+        self.setGeometry(50, 50, 670, 520)
+        self.setWindowTitle("Settings")
 
 def main():
     app = QtGui.QApplication(sys.argv)
