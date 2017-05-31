@@ -1,7 +1,8 @@
 import sys
 from PyQt4 import QtGui, QtCore
 import cv2
-
+import datetime
+now=datetime.datetime.now()
 
 class VideoCapture(QtGui.QWidget):
 
@@ -12,13 +13,23 @@ class VideoCapture(QtGui.QWidget):
     d=False
     Working = False
 
-    classifier = cv2.CascadeClassifier('ff.xml')
-    fps = 40
-    fsd='abra'
-    time=10*fps
-    lack=2*fps
+    settingsFile=open('settings.dat')
+    settingsData=settingsFile.read()
+    settingsData=settingsData.split("  ")
+
+    classDir=settingsData[0]
+    classifier=cv2.CascadeClassifier(classDir)
+    fps = int(settingsData[1])
+    fsd = settingsData[2]
+    time_ = int(settingsData[3])
+    lack_ = int(settingsData[4])
+    time = time_*fps
+    lack = lack_*fps
+    dateORnumber = int(settingsData[5])
 
 
+
+    #ff.xml  40  C:/Users/user/Pictures/  10  2
 
     def __init__(self, parent):
         super(QtGui.QWidget, self).__init__()
@@ -79,9 +90,13 @@ class VideoCapture(QtGui.QWidget):
         super(QtGui.QWidget, self).deleteLater()
 
     def saveFace(self):
-        cv2.imwrite( str(self.fsd)+ str(self.a) + ".jpg", self.img)
-        self.a+=1
+        if self.dateORnumber==0:
+            cv2.imwrite( str(self.fsd)+"_"+str(now.year)+"-"+str(now.month)+"-"+str(now.day)+"_"+str(now.hour)+":"+str(now.minute) + ".jpg", self.img)
+        else:
+            self.a+=1
+            cv2.imwrite(str(self.fsd)+"_"+self.a+".jpg", self.img)
         print "saved!"
+
 
 
 
@@ -130,11 +145,78 @@ class ControlWindow(QtGui.QMainWindow):
             self.dialog=SettingsWindow()
             self.dialog.show()
 
-class SettingsWindow(QtGui.QDialog):
+
+class SettingsWindow(QtGui.QWidget):
     def __init__(self):
         super(SettingsWindow, self).__init__()
-        self.setGeometry(50, 50, 670, 520)
+        self.setGeometry(50, 50, 670, 300)
         self.setWindowTitle("Settings")
+        self.vc = VideoCapture(self)
+
+
+        self.classifierButton = QtGui.QPushButton("Select classifier", self)
+        self.classifierLabel = QtGui.QLabel("Currently selected: "+ str(self.vc.classDir))
+
+        self.fileSaveDirButton = QtGui.QPushButton("Directory and name of the file to save", self)
+        self.fileSaveDirLabel = QtGui.QLabel("Currently selected: " + str(self.vc.fsd))
+
+        self.fpsLabel = QtGui.QLabel("Select FPS (recommended 40): " + str(self.vc.fps))
+        self.fpsSlider = QtGui.QSlider(QtCore.Qt.Horizontal)
+        self.fpsSlider.setMinimum(5)
+        self.fpsSlider.setMaximum(60)
+        self.fpsSlider.setValue(self.vc.fps)
+
+        self.timing = QtGui.QLabel("Timer before shooting: " + str(self.vc.time_))
+        self.timingSlider = QtGui.QSlider(QtCore.Qt.Horizontal)
+        self.timingSlider.setMinimum(1)
+        self.timingSlider.setMaximum(60)
+        self.timingSlider.setValue(self.vc.time_)
+
+        self.lack = QtGui.QLabel("Maximum time of human disappearance from the frame: " + str(self.vc.lack_))
+        self.lackSlider = QtGui.QSlider(QtCore.Qt.Horizontal)
+        self.lackSlider.setMinimum(0)
+        self.lackSlider.setMaximum(15)
+        self.lackSlider.setValue(self.vc.lack_)
+
+        if self.vc.dateORnumber==0:
+            a="date and time"
+            b="number"
+        else:
+            a="number"
+            b="date and time"
+        self.don = QtGui.QLabel("To the file name will be added: " + a)
+        self.donButton = QtGui.QPushButton("Set "+b, self)
+
+        self.creator = QtGui.QLabel("Creator of the program: Appolonov Georgiy")
+
+        self.saveSettings = QtGui.QPushButton("Save settings", self)
+
+
+        self.grid = QtGui.QGridLayout(self)
+        self.setLayout(self.grid)
+
+        self.grid.addWidget(self.classifierButton, 0, 0)
+        self.grid.addWidget(self.classifierLabel, 0, 1)
+        self.grid.addWidget(self.fileSaveDirButton, 1, 0)
+        self.grid.addWidget(self.fileSaveDirLabel, 1, 1)
+        self.grid.addWidget(self.fpsLabel, 2, 0)
+        self.grid.addWidget(self.fpsSlider, 2, 1)
+        self.grid.addWidget(self.timing, 3, 0)
+        self.grid.addWidget(self.timingSlider, 3, 1)
+        self.grid.addWidget(self.lack, 4, 0)
+        self.grid.addWidget(self.lackSlider, 4, 1)
+        self.grid.addWidget(self.don, 5, 0)
+        self.grid.addWidget(self.donButton, 5, 1)
+        self.grid.addWidget(self.creator, 6, 0)
+        self.grid.addWidget(self.saveSettings, 6, 1)
+
+    def saveSettings(self):
+        self.vc.settingsData=self.vc.classifier+" "+self.vc.fps+" "+self.vc.fsd+" "+self.vc.time_+" "+self.vc.lack_
+        file = open("settings.dat", "w")
+        data=self.vc.classifier+"  "+self.vc.fps+"  "+self.vc.fsd+"  "+self.vc.time_+"  "+self.vc.lack_+"  "+self.vc.dateORnumber
+        file.write(data)
+
+
 
 def main():
     app = QtGui.QApplication(sys.argv)
