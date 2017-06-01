@@ -27,8 +27,6 @@ class VideoCapture(QtGui.QWidget):
     lack = lack_*fps
     dateORnumber = int(settingsData[5])
 
-
-
     #ff.xml  40  C:/Users/user/Pictures/  10  2
 
     def __init__(self, parent):
@@ -129,10 +127,6 @@ class ControlWindow(QtGui.QMainWindow):
         self.setCentralWidget(self.vc)
         self.vc.start()
 
-    def showOpenDialog(self):
-        filename = QtGui.QFileDialog.getSaveFileName(self, 'Save...', '\\')
-        self.vc.fsd=(str(filename))
-
     def startSearch(self):
         self.vc.Working = not self.vc.Working
         if not self.vc.Working:
@@ -146,10 +140,10 @@ class ControlWindow(QtGui.QMainWindow):
             self.dialog.show()
 
 
-class SettingsWindow(QtGui.QWidget):
+class SettingsWindow(QtGui.QDialog):
     def __init__(self):
         super(SettingsWindow, self).__init__()
-        self.setGeometry(50, 50, 670, 300)
+        self.setGeometry(50, 50, 750, 300)
         self.setWindowTitle("Settings")
         self.vc = VideoCapture(self)
 
@@ -187,10 +181,18 @@ class SettingsWindow(QtGui.QWidget):
         self.don = QtGui.QLabel("To the file name will be added: " + a)
         self.donButton = QtGui.QPushButton("Set "+b, self)
 
-        self.creator = QtGui.QLabel("Creator of the program: Appolonov Georgiy")
+        self.creator = QtGui.QLabel("Creator of the program: Appolonov Georgiy (student)")
 
-        self.saveSettings = QtGui.QPushButton("Save settings", self)
+        self.saveSettingsButton = QtGui.QPushButton("Save settings", self)
 
+
+        self.saveSettingsButton.clicked.connect(self.saveSettings)
+        self.classifierButton.clicked.connect(self.setclassifier)
+        self.fileSaveDirButton.clicked.connect(self.showOpenDialog)
+        self.donButton.clicked.connect(self.dateornum)
+        self.fpsSlider.valueChanged.connect(self.fps_)
+        self.timingSlider.valueChanged.connect(self.time_)
+        self.lackSlider.valueChanged.connect(self.lack_)
 
         self.grid = QtGui.QGridLayout(self)
         self.setLayout(self.grid)
@@ -208,15 +210,47 @@ class SettingsWindow(QtGui.QWidget):
         self.grid.addWidget(self.don, 5, 0)
         self.grid.addWidget(self.donButton, 5, 1)
         self.grid.addWidget(self.creator, 6, 0)
-        self.grid.addWidget(self.saveSettings, 6, 1)
+        self.grid.addWidget(self.saveSettingsButton, 6, 1)
+
+
+    def fps_(self):
+        self.vc.fps=self.fpsSlider.value()
+        self.fpsLabel.setText("Select FPS (recommended 40): " + str(self.vc.fps))
+
+    def time_(self):
+        self.vc.time_=self.timingSlider.value()
+        self.timing.setText("Timer before shooting: " + str(self.vc.time_))
+
+    def lack_(self):
+        self.vc.lack_=self.lackSlider.value()
+        self.lack.setText("Maximum time of human disappearance from the frame: " + str(self.vc.lack_))
+
+    def dateornum(self):
+        if self.vc.dateORnumber==0:
+            self.vc.dateORnumber=1
+            self.don.setText("To the file name will be added: " + "number")
+            self.donButton.setText("Set " + "date and time")
+        else:
+            self.vc.dateORnumber=0
+            self.don.setText("To the file name will be added: " + "date and time")
+            self.donButton.setText("Set " + "number")
+
+    def setclassifier(self):
+        a = QtGui.QFileDialog.getOpenFileName(self, 'Open file', '\\')
+        if not a=="":
+            self.vc.classDir = a
+        self.classifierLabel.setText("Currently selected: "+self.vc.classDir)
 
     def saveSettings(self):
-        self.vc.settingsData=self.vc.classifier+" "+self.vc.fps+" "+self.vc.fsd+" "+self.vc.time_+" "+self.vc.lack_
         file = open("settings.dat", "w")
-        data=self.vc.classifier+"  "+self.vc.fps+"  "+self.vc.fsd+"  "+self.vc.time_+"  "+self.vc.lack_+"  "+self.vc.dateORnumber
+        data=str(self.vc.classDir)+"  "+str(self.vc.fps)+"  "+str(self.vc.fsd)+"  "+str(self.vc.time_)+"  "+str(self.vc.lack_)+"  "+str(self.vc.dateORnumber)
         file.write(data)
 
-
+    def showOpenDialog(self):
+        filename = QtGui.QFileDialog.getSaveFileName(self, 'Save...', '\\')
+        if not filename=="":
+            self.vc.fsd=(str(filename))
+        self.fileSaveDirLabel.setText("Currently selected: " + str(self.vc.fsd))
 
 def main():
     app = QtGui.QApplication(sys.argv)
