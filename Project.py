@@ -3,6 +3,8 @@ from PyQt4 import QtGui, QtCore
 import cv2
 import datetime
 now=datetime.datetime.now()
+app = QtGui.QApplication(sys.argv)
+
 
 class VideoCapture(QtGui.QWidget):
 
@@ -12,13 +14,20 @@ class VideoCapture(QtGui.QWidget):
     c=0
     d=False
     Working = False
+    forError=False
 
-    settingsFile=open('settings.dat')
-    settingsData=settingsFile.read()
-    settingsData=settingsData.split("  ")
 
+    try:
+        settingsFile=open('settings.dat')
+        settingsData=settingsFile.read()
+        settingsFile.close()
+    except:
+        settingsData="ff.xml  40  C:/Users/user/Pictures/  10  2  0  0"
+        file=open("settings.dat", 'w')
+        file.write(settingsData)
+
+    settingsData = settingsData.split("  ")
     classDir=settingsData[0]
-    classifier=cv2.CascadeClassifier(classDir)
     fps = int(settingsData[1])
     fsd = settingsData[2]
     time_ = int(settingsData[3])
@@ -26,53 +35,72 @@ class VideoCapture(QtGui.QWidget):
     time = time_*fps
     lack = lack_*fps
     dateORnumber = int(settingsData[5])
+    numCam=int(settingsData[6])
+    try:
+        fileClass=open(classDir)
+        fileClass.close()
+    except:
+        classDir = QtGui.QFileDialog.getOpenFileName(None,'Open classifier', '\\')
+        file = open("settings.dat", "w")
+        data = str(classDir) + "  " + str(fps) + "  " + str(fsd) + "  " + str(time_) + "  " + str(lack_) + "  " + str(dateORnumber+"  "+ str(numCam))
+        file.write(data)
+    classifier = cv2.CascadeClassifier(str(classDir))
 
-    #ff.xml  40  C:/Users/user/Pictures/  10  2
+    #ff.xml  40  C:/Users/user/Pictures/  10  2  0  0
 
     def __init__(self, parent):
         super(QtGui.QWidget, self).__init__()
-        self.cap = cv2.VideoCapture(0)
+        self.cap = cv2.VideoCapture(self.numCam)
         self.video_frame=QtGui.QLabel()
         self.layout = QtGui.QFormLayout(self)
         self.layout.addWidget(self.video_frame)
         self.setLayout(self.layout)
 
     def nextFrameSlot(self):
-        ret, frame = self.cap.read()
-        gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
-        if self.classifier is not None and self.Working:
-            detects = self.classifier.detectMultiScale(gray, scaleFactor=1.3,
-                                               minNeighbors=4,
-                                               minSize=(30, 30),
-                                               flags=cv2.cv.CV_HAAR_SCALE_IMAGE)
-            for (x, y, w, h) in detects:
-                (e, d) = (min(x + w, 640), min(y + h, 480))
-                cv2.rectangle(frame, (x, y), (e, d), (255, 0, 0), 2)
-            if not detects == ():
-                self.b+=1
-                print self.b
-                if self.time==self.b:
-                    print "Saving..."
-                    self.saveFace()
-                if self.b>self.time+2:
-                    self.b=self.time+1
-                self.c=0
-                self.d=True
-            else:
-                if self.d:
-                    self.c+=1
-                if self.lack==self.c:
+        try:
+            ret, frame = self.cap.read()
+            gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+            if self.classifier is not None and self.Working:
+                detects = self.classifier.detectMultiScale(gray, scaleFactor=1.3,
+                                                           minNeighbors=4,
+                                                           minSize=(30, 30),
+                                                           flags=cv2.cv.CV_HAAR_SCALE_IMAGE)
+                for (x, y, w, h) in detects:
+                    (e, d) = (min(x + w, 640), min(y + h, 480))
+                    cv2.rectangle(frame, (x, y), (e, d), (255, 0, 0), 2)
+                if not detects == ():
+                    self.b += 1
+                    print self.b
+                    if self.time == self.b:
+                        print "Saving..."
+                        self.saveFace()
+                    if self.b > self.time + 2:
+                        self.b = self.time + 1
+                    self.c = 0
+                    self.d = True
+                else:
                     if self.d:
-                        print "zero!"
-                        self.b=0
-                    self.d=False
+                        self.c += 1
+                    if self.lack == self.c:
+                        if self.d:
+                            print "zero!"
+                            self.b = 0
+                        self.d = False
 
-        self.img = frame
-        frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-        img = QtGui.QImage(frame, frame.shape[1], frame.shape[0],
-                           QtGui.QImage.Format_RGB888)
-        pix = QtGui.QPixmap.fromImage(img)
-        self.video_frame.setPixmap(pix)
+            self.img = frame
+            frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+            img = QtGui.QImage(frame, frame.shape[1], frame.shape[0],
+                               QtGui.QImage.Format_RGB888)
+            pix = QtGui.QPixmap.fromImage(img)
+            self.video_frame.setPixmap(pix)
+            self.forError=False
+        except:
+            if not self.forError:
+                QtGui.QMessageBox.information(None, "Error", "Cam error! Check the camera or go to settings and restart this program")
+                self.dialog = SettingsWindow()
+                self.dialog.show()
+                self.forError=True
+            self.timer.stop()
 
 
     def start(self):
@@ -143,7 +171,7 @@ class ControlWindow(QtGui.QMainWindow):
 class SettingsWindow(QtGui.QDialog):
     def __init__(self):
         super(SettingsWindow, self).__init__()
-        self.setGeometry(50, 50, 750, 300)
+        self.setGeometry(50, 50, 750, 350)
         self.setWindowTitle("Settings")
         self.vc = VideoCapture(self)
 
@@ -172,6 +200,12 @@ class SettingsWindow(QtGui.QDialog):
         self.lackSlider.setMaximum(15)
         self.lackSlider.setValue(self.vc.lack_)
 
+        self.cam = QtGui.QLabel("Selected cam (and restart program): " + str(self.vc.numCam+1))
+        self.camSlider = QtGui.QSlider(QtCore.Qt.Horizontal)
+        self.camSlider.setMinimum(0)
+        self.camSlider.setMaximum(3)
+        self.camSlider.setValue(self.vc.numCam)
+
         if self.vc.dateORnumber==0:
             a="date and time"
             b="number"
@@ -193,6 +227,7 @@ class SettingsWindow(QtGui.QDialog):
         self.fpsSlider.valueChanged.connect(self.fps_)
         self.timingSlider.valueChanged.connect(self.time_)
         self.lackSlider.valueChanged.connect(self.lack_)
+        self.camSlider.valueChanged.connect(self.camera)
 
         self.grid = QtGui.QGridLayout(self)
         self.setLayout(self.grid)
@@ -207,11 +242,17 @@ class SettingsWindow(QtGui.QDialog):
         self.grid.addWidget(self.timingSlider, 3, 1)
         self.grid.addWidget(self.lack, 4, 0)
         self.grid.addWidget(self.lackSlider, 4, 1)
-        self.grid.addWidget(self.don, 5, 0)
-        self.grid.addWidget(self.donButton, 5, 1)
-        self.grid.addWidget(self.creator, 6, 0)
-        self.grid.addWidget(self.saveSettingsButton, 6, 1)
+        self.grid.addWidget(self.cam, 5, 0)
+        self.grid.addWidget(self.camSlider, 5, 1)
+        self.grid.addWidget(self.don, 6, 0)
+        self.grid.addWidget(self.donButton, 6, 1)
+        self.grid.addWidget(self.creator, 7, 0)
+        self.grid.addWidget(self.saveSettingsButton, 7, 1)
 
+
+    def camera(self):
+        self.vc.numCam=self.camSlider.value()
+        self.cam.setText("Selected cam (and restart program): " + str(self.vc.numCam+1))
 
     def fps_(self):
         self.vc.fps=self.fpsSlider.value()
@@ -243,7 +284,7 @@ class SettingsWindow(QtGui.QDialog):
 
     def saveSettings(self):
         file = open("settings.dat", "w")
-        data=str(self.vc.classDir)+"  "+str(self.vc.fps)+"  "+str(self.vc.fsd)+"  "+str(self.vc.time_)+"  "+str(self.vc.lack_)+"  "+str(self.vc.dateORnumber)
+        data=str(self.vc.classDir)+"  "+str(self.vc.fps)+"  "+str(self.vc.fsd)+"  "+str(self.vc.time_)+"  "+str(self.vc.lack_)+"  "+str(self.vc.dateORnumber)+"  "+ str(self.vc.numCam)
         file.write(data)
 
     def showOpenDialog(self):
@@ -253,7 +294,6 @@ class SettingsWindow(QtGui.QDialog):
         self.fileSaveDirLabel.setText("Currently selected: " + str(self.vc.fsd))
 
 def main():
-    app = QtGui.QApplication(sys.argv)
     window = ControlWindow()
     window.show()
     sys.exit(app.exec_())
