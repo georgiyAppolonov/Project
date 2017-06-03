@@ -2,6 +2,7 @@ import sys
 from PyQt4 import QtGui, QtCore
 import cv2
 import datetime
+import threading
 now=datetime.datetime.now()
 app = QtGui.QApplication(sys.argv)
 
@@ -10,11 +11,11 @@ class VideoCapture(QtGui.QWidget):
 
     a = 1
     img = []
-    b=0
-    c=0
-    d=False
     Working = False
     forError=False
+    b = 0
+    c = 0
+    d = False
 
 
     try:
@@ -32,8 +33,8 @@ class VideoCapture(QtGui.QWidget):
     fsd = settingsData[2]
     time_ = int(settingsData[3])
     lack_ = int(settingsData[4])
-    time = time_*fps
-    lack = lack_*fps
+    time=time_*fps/2
+    lack=lack_*fps/2
     dateORnumber = int(settingsData[5])
     numCam=int(settingsData[6])
     try:
@@ -42,7 +43,7 @@ class VideoCapture(QtGui.QWidget):
     except:
         classDir = QtGui.QFileDialog.getOpenFileName(None,'Open classifier', '\\')
         file = open("settings.dat", "w")
-        data = str(classDir) + "  " + str(fps) + "  " + str(fsd) + "  " + str(time_) + "  " + str(lack_) + "  " + str(dateORnumber+"  "+ str(numCam))
+        data = str(classDir) + "  " + str(fps) + "  " + str(fsd) + "  " + str(time_) + "  " + str(lack_) + "  " + str(dateORnumber)+"  "+ str(numCam)
         file.write(data)
     classifier = cv2.CascadeClassifier(str(classDir))
 
@@ -61,10 +62,7 @@ class VideoCapture(QtGui.QWidget):
             ret, frame = self.cap.read()
             gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
             if self.classifier is not None and self.Working:
-                detects = self.classifier.detectMultiScale(gray, scaleFactor=1.3,
-                                                           minNeighbors=4,
-                                                           minSize=(30, 30),
-                                                           flags=cv2.cv.CV_HAAR_SCALE_IMAGE)
+                detects = self.classifier.detectMultiScale(gray, scaleFactor=1.3,minNeighbors=4,minSize=(30, 30),flags=cv2.cv.CV_HAAR_SCALE_IMAGE)
                 for (x, y, w, h) in detects:
                     (e, d) = (min(x + w, 640), min(y + h, 480))
                     cv2.rectangle(frame, (x, y), (e, d), (255, 0, 0), 2)
@@ -86,7 +84,6 @@ class VideoCapture(QtGui.QWidget):
                             print "zero!"
                             self.b = 0
                         self.d = False
-
             self.img = frame
             frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
             img = QtGui.QImage(frame, frame.shape[1], frame.shape[0],
@@ -108,6 +105,7 @@ class VideoCapture(QtGui.QWidget):
         self.timer.timeout.connect(self.nextFrameSlot)
         self.timer.start(1000.0/self.fps)
 
+
     def pause(self):
         self.timer.stop()
 
@@ -117,10 +115,10 @@ class VideoCapture(QtGui.QWidget):
 
     def saveFace(self):
         if self.dateORnumber==0:
-            cv2.imwrite( str(self.fsd)+"_"+str(now.year)+"-"+str(now.month)+"-"+str(now.day)+"_"+str(now.hour)+":"+str(now.minute) + ".jpg", self.img)
+            cv2.imwrite(str(self.fsd)+"_"+str(now.year)+"-"+str(now.month)+"-"+str(now.day)+"_"+str(now.hour)+"-"+str(now.minute) + ".jpg", self.img)
         else:
-            self.a+=1
-            cv2.imwrite(str(self.fsd)+"_"+self.a+".jpg", self.img)
+            cv2.imwrite(str(self.fsd)+"_"+str(self.a)+".jpg", self.img)
+            self.a += 1
         print "saved!"
 
 
@@ -157,7 +155,10 @@ class ControlWindow(QtGui.QMainWindow):
 
     def startSearch(self):
         self.vc.Working = not self.vc.Working
-        if not self.vc.Working:
+        self.b = True
+        self.c = True
+        self.d = True
+        if self.vc.Working:
             print "Work is running"
         else:
             print "Work is stopped"
@@ -286,6 +287,7 @@ class SettingsWindow(QtGui.QDialog):
         file = open("settings.dat", "w")
         data=str(self.vc.classDir)+"  "+str(self.vc.fps)+"  "+str(self.vc.fsd)+"  "+str(self.vc.time_)+"  "+str(self.vc.lack_)+"  "+str(self.vc.dateORnumber)+"  "+ str(self.vc.numCam)
         file.write(data)
+        QtGui.QMessageBox.information(None, "Saved","Pls restart the programm")
 
     def showOpenDialog(self):
         filename = QtGui.QFileDialog.getSaveFileName(self, 'Save...', '\\')
@@ -301,5 +303,4 @@ def main():
 if __name__ == '__main__':
     main()
 
-
-#Version 1.2 only eng
+#Version 1.5 only eng (not
