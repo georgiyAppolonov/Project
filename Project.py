@@ -189,13 +189,13 @@ class SettingsWindow(QtGui.QDialog):
         self.fpsSlider.setMaximum(60)
         self.fpsSlider.setValue(self.vc.fps)
 
-        self.timing = QtGui.QLabel("Timer before shooting: " + str(self.vc.time_))
+        self.timing = QtGui.QLabel("Timer before shooting (Approximately in seconds): " + str(self.vc.time_))
         self.timingSlider = QtGui.QSlider(QtCore.Qt.Horizontal)
         self.timingSlider.setMinimum(1)
         self.timingSlider.setMaximum(60)
         self.timingSlider.setValue(self.vc.time_)
 
-        self.lack = QtGui.QLabel("Maximum time of human disappearance from the frame: " + str(self.vc.lack_))
+        self.lack = QtGui.QLabel("Maximum time of human disappearance from the frame\n (Approximately in seconds): " + str(self.vc.lack_))
         self.lackSlider = QtGui.QSlider(QtCore.Qt.Horizontal)
         self.lackSlider.setMinimum(0)
         self.lackSlider.setMaximum(15)
@@ -261,11 +261,11 @@ class SettingsWindow(QtGui.QDialog):
 
     def time_(self):
         self.vc.time_=self.timingSlider.value()
-        self.timing.setText("Timer before shooting: " + str(self.vc.time_))
+        self.timing.setText("Timer before shooting (approximately in seconds): " + str(self.vc.time_))
 
     def lack_(self):
         self.vc.lack_=self.lackSlider.value()
-        self.lack.setText("Maximum time of human disappearance from the frame: " + str(self.vc.lack_))
+        self.lack.setText("Maximum time of human disappearance from the frame\n (Approximately in seconds): " + str(self.vc.lack_))
 
     def dateornum(self):
         if self.vc.dateORnumber==0:
